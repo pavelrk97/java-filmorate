@@ -14,7 +14,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 // запуск теста на случайном порту
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-public class FilmControllerTests {
+class FilmControllerTests {
 
     @Autowired
     private TestRestTemplate restTemplate;

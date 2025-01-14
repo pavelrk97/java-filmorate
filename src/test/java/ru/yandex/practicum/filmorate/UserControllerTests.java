@@ -12,7 +12,7 @@ import java.time.LocalDate;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-public class UserControllerTests {
+class UserControllerTests {
 
     @Autowired
     private TestRestTemplate restTemplate;
@@ -137,7 +137,7 @@ public class UserControllerTests {
                 String.class
         );
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
 
     @Test
