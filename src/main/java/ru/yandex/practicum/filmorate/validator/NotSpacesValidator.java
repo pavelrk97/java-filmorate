@@ -9,7 +9,7 @@ import ru.yandex.practicum.filmorate.exception.ValidationException;
 public class NotSpacesValidator implements ConstraintValidator<NotSpaces, String> {
     @Override
     public boolean isValid(String s, ConstraintValidatorContext constraintValidatorContext) {
-        if (s.contains(" ")){
+        if (s.contains(" ")) {
             throw new ValidationException("Логин не должен содержать пробелы");
         }
         return true;
