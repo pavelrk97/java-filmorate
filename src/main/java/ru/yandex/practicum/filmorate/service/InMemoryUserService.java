@@ -14,7 +14,7 @@ import java.util.Set;
 
 @Slf4j
 @Service
-public class InMemoryUserService implements UserService {
+public class InMemoryUserService {
 
     private final UserStorage storage; // сервисы зависят от интерфейсов классов-хранилищ
 
@@ -27,7 +27,6 @@ public class InMemoryUserService implements UserService {
         return storage.findById(userId);
     }
 
-    @Override
     public Collection<User> getFriends(long userId) {
         Optional<User> currentUser = findUser(userId);
 
@@ -44,106 +43,129 @@ public class InMemoryUserService implements UserService {
         }
     }
 
-    @Override
     public Collection<User> getCommonFriends(long firstUserId, long secondUserId) {
-        Optional<User> firstUser = findUser(firstUserId);
-        Optional<User> secondUser = findUser(secondUserId);
+        User firstUser = findUser(firstUserId)
+                .orElseThrow(() -> {
+                    log.error("Пользователь с id = {} не найден", firstUserId);
+                    return new NotFoundException("Пользователь с id = " + firstUserId + " не найден");
+                });
 
-        if (firstUser.isPresent() && secondUser.isPresent()) {
-            Set<Long> firstFriends = firstUser.get().getFriendsId();
-            Set<Long> secondFriends = secondUser.get().getFriendsId();
+        User secondUser = findUser(secondUserId)
+                .orElseThrow(() -> {
+                    log.error("Пользователь с id = {} не найден", secondUserId);
+                    return new NotFoundException("Пользователь с id = " + secondUserId + " не найден");
+                });
 
-            List<Long> commonIds = firstFriends
-                    .stream()
-                    .filter(secondFriends::contains)
-                    .toList();
+        // Пересечение списков друзей
+        Set<Long> commonIds = firstUser.getFriendsId();
+        commonIds.retainAll(secondUser.getFriendsId()); // retainAll оставляет только общие элементы (не забыть почитать)
 
-            return storage.findAll()
-                    .stream()
-                    .filter(user -> commonIds.contains(user.getId()))
-                    .toList();
-        } else if (firstUser.isEmpty()) {
-            log.error("Пользователь с id = {} не найден", firstUserId);
-            throw new NotFoundException("Пользователь с id = " + firstUserId + " не найден");
-
-        } else {
-            log.error("Пользователь с id = {} не найден", secondUserId);
-            throw new NotFoundException("Пользователь с id = " + secondUserId + " не найден");
-        }
+        return storage.findAll()
+                .stream()
+                .filter(user -> commonIds.contains(user.getId()))
+                .toList();
     }
 
-    @Override
     public User addFriend(long mainUserId, long friendUserId) {
-
         if (mainUserId == friendUserId) {
             log.error("Нельзя добавить в друзья самого себя");
             throw new ValidationException("Нельзя добавить в друзья самого себя");
         }
 
-        Optional<User> mainUser = findUser(mainUserId);
-        Optional<User> friendUser = findUser(friendUserId);
+        User mainUser = findUser(mainUserId)
+                .orElseThrow(() -> {
+                    log.error("Пользователь с id = {} не найден", mainUserId);
+                    return new NotFoundException("Пользователь с id = " + mainUserId + " не найден");
+                });
 
-        if (mainUser.isPresent() && friendUser.isPresent()) {
-            mainUser.get().getFriendsId().add(friendUserId);
-            friendUser.get().getFriendsId().add(mainUserId);
+        User friendUser = findUser(friendUserId)
+                .orElseThrow(() -> {
+                    log.error("Пользователь с id = {} не найден", friendUserId);
+                    return new NotFoundException("Пользователь с id = " + friendUserId + " не найден");
+                });
 
-            log.info("Пользователь с id = {} добавил в друзья пользователя с id = {}", mainUserId, friendUserId);
-            return mainUser.get();
+        mainUser.getFriendsId().add(friendUserId);
+        friendUser.getFriendsId().add(mainUserId);
 
-        } else if (mainUser.isEmpty()) {
-            log.error("Пользователь с id = {} не найден", mainUserId);
-            throw new NotFoundException("Пользователь с id = " + mainUserId + " не найден");
-
-        } else {
-            log.error("Пользователь с id = {} не найден", friendUserId);
-            throw new NotFoundException("Пользователь с id = " + friendUserId + " не найден");
-        }
+        log.info("Пользователь с id = {} добавил в друзья пользователя с id = {}", mainUserId, friendUserId);
+        return mainUser;
     }
 
-    @Override
     public User removeFriend(long mainUserId, long friendUserId) {
         if (mainUserId == friendUserId) {
-            log.error("Нельзя добавить в друзья самого себя");
-            throw new ValidationException("Нельзя добавить в друзья самого себя");
+            log.error("Нельзя удалить себя из списка друзей");
+            throw new ValidationException("Нельзя удалить себя из списка друзей");
         }
 
-        Optional<User> mainUser = findUser(mainUserId);
-        Optional<User> friendUser = findUser(friendUserId);
+        User mainUser = findUser(mainUserId)
+                .orElseThrow(() -> {
+                    log.error("Пользователь с id = {} не найден", mainUserId);
+                    return new NotFoundException("Пользователь с id = " + mainUserId + " не найден");
+                });
 
-        if (mainUser.isPresent() && friendUser.isPresent()) {
-            mainUser.get().getFriendsId().remove(friendUserId);
-            friendUser.get().getFriendsId().remove(mainUserId);
+        User friendUser = findUser(friendUserId)
+                .orElseThrow(() -> {
+                    log.error("Пользователь с id = {} не найден", friendUserId);
+                    return new NotFoundException("Пользователь с id = " + friendUserId + " не найден");
+                });
 
-            log.info("Пользователь с id = {} удалил из друзей пользователя с id = {}", mainUserId, friendUserId);
-            return mainUser.get();
+        mainUser.getFriendsId().remove(friendUserId);
+        friendUser.getFriendsId().remove(mainUserId);
 
-        } else if (mainUser.isEmpty()) {
-            log.error("Пользователь с id = {} не найден", mainUserId);
-            throw new NotFoundException("Пользователь с id = " + mainUserId + " не найден");
-
-        } else {
-            log.error("Пользователь с id = {} не найден", friendUserId);
-            throw new NotFoundException("Пользователь с id = " + friendUserId + " не найден");
-        }
+        log.info("Пользователь с id = {} удалил из друзей пользователя с id = {}", mainUserId, friendUserId);
+        return mainUser;
     }
 
-    @Override
     public User create(User user) {
-        return storage.create(user);
+        log.info("Попытка создать пользователя: {}", user);
+        User createdUser = storage.create(user);
+
+        if (createdUser != null) {
+            log.info("Пользователь успешно создан: {}", createdUser);
+        } else {
+            log.error("Ошибка при создании пользователя: {}", user);
+        }
+
+        return createdUser;
     }
 
-    @Override
     public User update(User user) {
-        return storage.update(user);
+        log.info("Попытка обновить данные пользователя с id = {}", user.getId());
+        User updatedUser = storage.update(user);
+
+        if (updatedUser != null) {
+            log.info("Пользователь обновлён: {}", updatedUser);
+        } else {
+            log.error("Не удалось обновить пользователя с id = {}", user.getId());
+        }
+
+        return updatedUser;
     }
 
-    @Override
     public Collection<User> findAll() {
-        return storage.findAll();
+        log.info("Запрос списка всех пользователей");
+        Collection<User> users = storage.findAll();
+
+        if (users != null) {
+            log.info("Получено {} пользователей", users.size());
+        } else {
+            log.warn("Не удалось получить пользователей, результат null");
+        }
+
+        return users;
     }
 
-    @Override
+
     public Optional<User> findById(long id) {
-        return storage.findById(id);
+        log.info("Поиск пользователя с id = {}", id);
+        Optional<User> user = storage.findById(id);
+
+        if (user.isPresent()) {
+            log.info("Пользователь с id = {} найден: {}", id, user.get());
+        } else {
+            log.warn("Пользователь с id = {} не найден", id);
+        }
+
+        return user;
     }
 }
