@@ -1,76 +1,61 @@
 package ru.yandex.practicum.filmorate.controller;
 
 import jakarta.validation.Valid;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.*;
-import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.service.InMemoryUserService;
 
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
 
-
-@Slf4j
 @RestController
 @RequestMapping("/users")
 public class UserController {
 
-    private final Map<Long, User> users = new HashMap<>();
+    private final InMemoryUserService service;
 
-    // @Valid инициирует автоматическую валидацию аргумента согласно описанию его в классе
-    // @RequestBody чтобы создать объект из тела запроса на добавление или обновление сущности
-    @PostMapping
-    public User create(@Valid @RequestBody User user) {
-        log.info("Создание нового пользователя: {}", user.getLogin());
-        if (Objects.isNull(user.getName())) {
-            user = user.toBuilder()
-                    .name(user.getLogin())
-                    .build();
-        } else {
-            user = user.toBuilder()
-                    .id(getNextId())
-                    .build();
-        }
-        users.put(user.getId(), user);
-        log.info("Пользователь c id = {} успешно добавлен", user.getId());
-        return user;
+    public UserController(InMemoryUserService service) {
+        this.service = service;
     }
 
     @GetMapping
     public Collection<User> findAll() {
-        log.info("Вывод {} пользователей", users.size());
-        return users.values();
+        return service.findAll();
+    }
+
+    @PostMapping
+    public User create(@Valid @RequestBody User user) {
+        return service.create(user);
     }
 
     @PutMapping
     public User update(@Valid @RequestBody User newUser) {
-        Long id = newUser.getId();
-        if (users.containsKey(id)) {
-            log.info("Обновление данных пользователя с id = {}", id);
-            User user = newUser.toBuilder()
-                    .name(newUser.getName())
-                    .id(id)
-                    .email(newUser.getEmail())
-                    .login(newUser.getLogin())
-                    .birthday(newUser.getBirthday())
-                    .build();
-            users.put(id, user);
-            log.info("Пользователь с id = {} успешно обновлён", user.getId());
-            return user;
-        } else {
-            log.error("Пользователь с id = {} не найден", id);
-            throw new NotFoundException("Пользователь с id = " + id + " не найден");
-        }
+        return service.update(newUser);
     }
 
-    private long getNextId() {
-        long currentMaxId = users.keySet()
-                .stream()
-                .mapToLong(id -> id)
-                .max()
-                .orElse(0);
-        return ++currentMaxId;
+    @PutMapping("/{id}/friends/{friendId}")
+    public User addFriend(@PathVariable Long id, @PathVariable Long friendId) {
+        return service.addFriend(id, friendId);
+    }
+
+    @DeleteMapping("/{id}/friends/{friendId}")
+    public User removeFriend(@PathVariable Long id, @PathVariable Long friendId) {
+        return service.removeFriend(id, friendId);
+    }
+
+    @GetMapping("/{id}/friends")
+    public Collection<User> getFriends(@PathVariable Long id) {
+        return service.getFriends(id);
+    }
+
+    @GetMapping("/{id}/friends/common/{otherId}")
+    public Collection<User> getCommonFriends(@PathVariable Long id, @PathVariable Long otherId) {
+        return service.getCommonFriends(id, otherId);
     }
 }

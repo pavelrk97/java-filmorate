@@ -1,18 +1,9 @@
 package ru.yandex.practicum.filmorate.exception;
 
+import lombok.Value;
 
+@Value
 public class ErrorResponse {
-    private String message;
-
-    public ErrorResponse(String message) {
-        this.message = message;
-    }
-
-    public String getMessage() {
-        return message;
-    }
-
-    public void setMessage(String message) {
-        this.message = message;
-    }
+    String error;
+    String description;
 }
