@@ -8,7 +8,6 @@ import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -17,7 +16,6 @@ import java.util.Set;
 public class InMemoryUserService {
 
     private final UserStorage storage; // сервисы зависят от интерфейсов классов-хранилищ
-
 
     public InMemoryUserService(UserStorage storage) {
         this.storage = storage;
@@ -154,7 +152,6 @@ public class InMemoryUserService {
 
         return users;
     }
-
 
     public Optional<User> findById(long id) {
         log.info("Поиск пользователя с id = {}", id);
