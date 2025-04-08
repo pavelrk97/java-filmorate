@@ -73,7 +73,7 @@ public class GenreDbStorageImpl implements GenreStorage {
                         if (genres.contains(genre.getId())) {
                             resultGenres.add(genre);
                         } else {
-                            throw new ValidationException("Указанный жанр не существует");
+                            throw new NotFoundException("Указанный жанр не существует");
                         }
                     }
             );

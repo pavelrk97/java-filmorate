@@ -58,11 +58,11 @@ public class MpaDbStorageImpl implements MpaStorage {
         try {
             count = jdbcTemplate.queryForObject(sqlQueryMpa, Integer.class, film.getMpa().getId());
         } catch (EmptyResultDataAccessException e) {
-            throw new ValidationException("MPA id не существуют");
+            throw new NotFoundException("MPA id не существуют");
         }
 
         if (Objects.isNull(count) || count == 0) {
-            throw new ValidationException("MPA id не существует");
+            throw new NotFoundException("MPA id не существует");
         }
 
         return count;
