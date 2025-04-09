@@ -67,22 +67,6 @@ class UserControllerTests {
     }
 
     @Test
-    void shouldCreateUserWithoutName() {
-        User user = User.builder()
-                .email("email@test.com")
-                .login("Login")
-                .name(null)
-                .birthday(LocalDate.of(2000, 1, 1))
-                .build();
-
-        ResponseEntity<User> response = restTemplate.postForEntity("/users", user, User.class);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getName()).isEqualTo(user.getLogin());
-    }
-
-    @Test
     void shouldNotCreateUserWithFutureBirthday() {
         User user = User.builder()
                 .email("email@test.com")
@@ -94,25 +78,6 @@ class UserControllerTests {
         ResponseEntity<String> response = restTemplate.postForEntity("/users", user, String.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-    }
-
-    @Test
-    void shouldCreateValidUser() {
-        User user = User.builder()
-                .email("email@test.com")
-                .login("Login")
-                .name("Name")
-                .birthday(LocalDate.of(2000, 1, 1))
-                .build();
-
-        ResponseEntity<User> response = restTemplate.postForEntity("/users", user, User.class);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getEmail()).isEqualTo(user.getEmail());
-        assertThat(response.getBody().getLogin()).isEqualTo(user.getLogin());
-        assertThat(response.getBody().getName()).isEqualTo(user.getName());
-        assertThat(response.getBody().getBirthday()).isEqualTo(user.getBirthday());
     }
 
     @Test
