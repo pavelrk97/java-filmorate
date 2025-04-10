@@ -48,15 +48,12 @@ public class FilmDbStorageImpl implements FilmStorage {
         final String sqlQuery = "SELECT id, name, description, releaseDate, duration, mpa_id " +
                 "FROM films WHERE id = ?";
 
-        Optional<Film> resultFilm = Optional.ofNullable(jdbcTemplate.queryForObject(sqlQuery,
-                filmRowMappers::mapRowToFilm, id));
+        // Извлекаем фильм из базы данных
+        Film resultFilm = jdbcTemplate.queryForObject(sqlQuery, filmRowMappers::mapRowToFilm, id);
 
-        if (resultFilm.isPresent()) {
-            return resultFilm.get();
-
-        } else {
-            throw new NotFoundException("Фильм с id = " + id + " не найден");
-        }
+        // Если результат null, выбрасываем исключение
+        return Optional.ofNullable(resultFilm)
+                .orElseThrow(() -> new NotFoundException("Фильм с id = " + id + " не найден"));
     }
 
     @Override
