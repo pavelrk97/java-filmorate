@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.mappers.GenreRowMappers;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
@@ -16,6 +17,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 
 @Slf4j
 @Component("filmGenreDbStorage")
@@ -41,7 +43,7 @@ public class FilmGenreDbStorageImpl implements FilmGenreStorage {
     @Override
     public void addGenresInFilmGenres(Film film, Long newId) {
 
-        List<Genre> resultGenres = genreStorage.getExistGenres(film).stream().toList();
+        List<Genre> resultGenres = getExistGenres(film).stream().toList();
 
         final String sqlQueryFilmGenres = "INSERT INTO film_genre(film_id, genre_id) " +
                 "values (?, ?)";
@@ -77,5 +79,29 @@ public class FilmGenreDbStorageImpl implements FilmGenreStorage {
         }
 
         return result;
+    }
+
+    // Дублируем GenreDbStorageImpl
+    public Collection<Long> findIds() {
+        String sqlQuery = "SELECT id from genres";
+        return jdbcTemplate.queryForList(sqlQuery, Long.class);
+    }
+
+    public Collection<Genre> getExistGenres(Film film) {
+        List<Long> genres = findIds().stream().toList();
+        List<Genre> filmGenres = film.getGenres();
+        List<Genre> resultGenres = new ArrayList<>();
+
+        if (Objects.nonNull(filmGenres)) {
+            filmGenres.forEach(genre -> {
+                        if (genres.contains(genre.getId())) {
+                            resultGenres.add(genre);
+                        } else {
+                            throw new NotFoundException("Указанный жанр не существует");
+                        }
+                    }
+            );
+        }
+        return resultGenres;
     }
 }

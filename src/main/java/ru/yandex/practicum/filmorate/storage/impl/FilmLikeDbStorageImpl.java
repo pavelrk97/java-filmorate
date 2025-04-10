@@ -8,7 +8,7 @@ import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.storage.FilmLikeStorage;
-import ru.yandex.practicum.filmorate.storage.FilmStorage;
+import ru.yandex.practicum.filmorate.mappers.FilmRowMappers;
 
 import java.sql.PreparedStatement;
 import java.util.*;
@@ -18,11 +18,11 @@ import java.util.*;
 public class FilmLikeDbStorageImpl implements FilmLikeStorage {
 
     private final JdbcTemplate jdbcTemplate;
-    private final FilmStorage filmStorage;
+    private final FilmRowMappers filmRowMappers;
 
-    public FilmLikeDbStorageImpl(JdbcTemplate jdbcTemplate, @Lazy FilmStorage filmStorage) {
+    public FilmLikeDbStorageImpl(JdbcTemplate jdbcTemplate, @Lazy FilmRowMappers filmRowMappers) {
         this.jdbcTemplate = jdbcTemplate;
-        this.filmStorage = filmStorage;
+        this.filmRowMappers = filmRowMappers;
     }
 
     @Override
@@ -114,7 +114,7 @@ public class FilmLikeDbStorageImpl implements FilmLikeStorage {
         });
 
         List<Film> result = new ArrayList<>();
-        List<Film> allFilms = filmStorage.findAll().stream().toList();
+        List<Film> allFilms = findAll().stream().toList();
 
         allFilms.forEach(film -> {
             if (Objects.requireNonNull(filmIds).contains(film.getId())) {
@@ -146,5 +146,12 @@ public class FilmLikeDbStorageImpl implements FilmLikeStorage {
         }
 
         return result;
+    }
+
+    // не создается зависимость от FilmStorage или DbFilmStorage, а работаем напрямую через SQL и JdbcTemplate
+    public Collection<Film> findAll() {
+        log.info("Выгрузка всех фильмов");
+        final String sqlQuery = "SELECT id, name, description, releaseDate, duration, mpa_id FROM films";
+        return jdbcTemplate.query(sqlQuery, filmRowMappers::mapRowToFilm);
     }
 }

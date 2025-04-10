@@ -2,7 +2,9 @@ package ru.yandex.practicum.filmorate.storage.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
@@ -18,10 +20,8 @@ import ru.yandex.practicum.filmorate.storage.GenreStorage;
 import ru.yandex.practicum.filmorate.storage.MpaStorage;
 
 import java.sql.PreparedStatement;
-import java.util.Collection;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.sql.SQLException;
+import java.util.*;
 
 @Slf4j
 @Component("filmDbStorage")
@@ -29,10 +29,7 @@ import java.util.Optional;
 public class FilmDbStorageImpl implements FilmStorage {
 
     private final JdbcTemplate jdbcTemplate;
-    private final MpaStorage mpaStorage;
-    private final GenreStorage genreStorage;
     private final FilmRowMappers filmRowMappers;
-    private final FilmGenreStorage filmGenreStorage;
 
     @Override
     public Collection<Film> findAll() {
@@ -67,7 +64,7 @@ public class FilmDbStorageImpl implements FilmStorage {
                 "values (?, ?, ?, ?, ?)";
 
         // проверяем существование рейтинга в таблице mpa
-        mpaStorage.getCountById(film);
+        getCountById(film);
 
         jdbcTemplate.update(connection -> {
             PreparedStatement stmt = connection.prepareStatement(sqlQueryFilm, new String[]{"id"});
@@ -86,9 +83,9 @@ public class FilmDbStorageImpl implements FilmStorage {
         }
 
         // кладём жанры фильма в таблицу film_genre
-        filmGenreStorage.addGenresInFilmGenres(film, filmId);
+        addGenresInFilmGenres(film, filmId);
 
-        List<Genre> resultGenres = genreStorage.getExistGenres(film).stream().toList();
+        List<Genre> resultGenres = getExistGenres(film).stream().toList();
 
         log.info("Фильм c id = {} успешно добавлен", film.getId());
         return Film.builder()
@@ -148,5 +145,71 @@ public class FilmDbStorageImpl implements FilmStorage {
             log.error("Ошибка обновления фильма id = {}", filmId);
             throw new NotFoundException("Ошибка обновления фильма id = " + filmId);
         }
+    }
+
+    // Дублирование MpaStorage
+    public Integer getCountById(Film film) {
+        log.info("Проверка существования mpa_id = {} в таблице mpa", film.getMpa().getId());
+        Integer count;
+        final String sqlQueryMpa = "SELECT COUNT(*) " +
+                "FROM mpa WHERE id = ?";
+
+        try {
+            count = jdbcTemplate.queryForObject(sqlQueryMpa, Integer.class, film.getMpa().getId());
+        } catch (EmptyResultDataAccessException e) {
+            throw new NotFoundException("MPA id не существуют");
+        }
+
+        if (Objects.isNull(count) || count == 0) {
+            throw new NotFoundException("MPA id не существует");
+        }
+
+        return count;
+    }
+
+    // Дублирование GenreDbStorageImpl
+    public Collection<Long> findIds() {
+        String sqlQuery = "SELECT id from genres";
+        return jdbcTemplate.queryForList(sqlQuery, Long.class);
+    }
+
+    public Collection<Genre> getExistGenres(Film film) {
+        List<Long> genres = findIds().stream().toList();
+        List<Genre> filmGenres = film.getGenres();
+        List<Genre> resultGenres = new ArrayList<>();
+
+        if (Objects.nonNull(filmGenres)) {
+            filmGenres.forEach(genre -> {
+                        if (genres.contains(genre.getId())) {
+                            resultGenres.add(genre);
+                        } else {
+                            throw new NotFoundException("Указанный жанр не существует");
+                        }
+                    }
+            );
+        }
+        return resultGenres;
+    }
+
+    // Дублирование FilmGenreDbStorageImpl
+    public void addGenresInFilmGenres(Film film, Long newId) {
+
+        List<Genre> resultGenres = getExistGenres(film).stream().toList();
+
+        final String sqlQueryFilmGenres = "INSERT INTO film_genre(film_id, genre_id) " +
+                "values (?, ?)";
+
+        jdbcTemplate.batchUpdate(sqlQueryFilmGenres, new BatchPreparedStatementSetter() {
+            @Override
+            public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                preparedStatement.setLong(1, newId);
+                preparedStatement.setLong(2, resultGenres.get(i).getId());
+            }
+
+            @Override
+            public int getBatchSize() {
+                return resultGenres.size();
+            }
+        });
     }
 }
