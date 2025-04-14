@@ -25,7 +25,6 @@ import java.util.Objects;
 public class FilmGenreDbStorageImpl implements FilmGenreStorage {
 
     private final JdbcTemplate jdbcTemplate;
-    private final GenreStorage genreStorage;
     private final GenreRowMappers genreRowMappers;
 
     @Override
@@ -70,7 +69,7 @@ public class FilmGenreDbStorageImpl implements FilmGenreStorage {
                 "WHERE film_id = ? ";
 
         List<Long> genreIds = jdbcTemplate.queryForList(filmGenresQuery, Long.class, filmId);
-        List<Genre> genres = genreStorage.findAll().stream().toList();
+        List<Genre> genres = findAllGenres().stream().toList();
 
         for (Genre genre : genres) {
             if (genreIds.contains(genre.getId())) {
@@ -103,5 +102,10 @@ public class FilmGenreDbStorageImpl implements FilmGenreStorage {
             );
         }
         return resultGenres;
+    }
+
+    public Collection<Genre> findAllGenres() {
+        String sqlQuery = "SELECT * from genres";
+        return jdbcTemplate.query(sqlQuery, genreRowMappers::mapRowToGenre);
     }
 }

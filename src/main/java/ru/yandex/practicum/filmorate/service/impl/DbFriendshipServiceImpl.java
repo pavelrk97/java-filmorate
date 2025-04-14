@@ -19,11 +19,12 @@ public class DbFriendshipServiceImpl implements FriendshipService {
 
     @Override
     public Collection<User> getFriends(Long userId) {
-        if (userCrudService.findById(userId).isEmpty()) {
-            throw new NotFoundException("Пользователь с id = " + userId + " не найден");
-        }
+        userCrudService.findById(userId)
+                .orElseThrow(() -> new NotFoundException("Пользователь с id = " + userId + " не найден"));
+
         return friendshipStorage.getFriends(userId);
     }
+
 
     @Override
     public Collection<User> getCommonFriends(Long firstUserId, Long secondUserId) {
