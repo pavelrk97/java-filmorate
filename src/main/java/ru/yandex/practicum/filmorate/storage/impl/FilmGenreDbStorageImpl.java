@@ -10,7 +10,6 @@ import ru.yandex.practicum.filmorate.mappers.GenreRowMappers;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.storage.FilmGenreStorage;
-import ru.yandex.practicum.filmorate.storage.GenreStorage;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
