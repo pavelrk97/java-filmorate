@@ -16,8 +16,6 @@ import java.util.Set;
 public class User {
 
     Long id;
-    Set<Long> friendsId = new HashSet<>();
-
 
     @NotBlank(message = "Электронная почта не может быть пустой")
     @Email(message = "Электронная почта должна соответствовать шаблону name@domain.xx")
@@ -31,4 +29,6 @@ public class User {
 
     @PastOrPresent(message = "Дата рождения должна быть не позже текущего момента")
     LocalDate birthday;
+
+    Set<User> friends = new HashSet<>();
 }
